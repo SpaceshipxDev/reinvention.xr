@@ -1,6 +1,14 @@
-"use client";                    // needs Firebase client SDK
+"use client";
 import { useEffect, useState } from "react";
 import { getStorage, ref, listAll, getDownloadURL } from "firebase/storage";
+
+/** recursively collect every StorageReference under a folder */
+async function collectFiles(r: ReturnType<typeof ref>): Promise<string[]> {
+  const res  = await listAll(r);
+  const here = res.items.map(i => i.fullPath);
+  const deeperArrays = await Promise.all(res.prefixes.map(collectFiles));
+  return [...here, ...deeperArrays.flat()];
+}
 
 export default function JobFilesPage({ params }: { params: { id: string } }) {
   const jobId = params.id;
@@ -8,16 +16,17 @@ export default function JobFilesPage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     (async () => {
-      const storage  = getStorage();
-      const folderRef = ref(storage, `jobs/${jobId}`);
-      const res = await listAll(folderRef);
-      const list = await Promise.all(
-        res.items.map(async (item) => ({
-          name: item.name,
-          url: await getDownloadURL(item),
+      const storage   = getStorage();
+      const rootRef   = ref(storage, `jobs/${jobId}`);
+      const paths     = await collectFiles(rootRef);
+
+      const all = await Promise.all(
+        paths.map(async p => ({
+          name: p.replace(`jobs/${jobId}/`, ""),   // strip prefix for display
+          url:  await getDownloadURL(ref(storage, p))
         }))
       );
-      setFiles(list);
+      setFiles(all);
     })();
   }, [jobId]);
 
@@ -29,7 +38,7 @@ export default function JobFilesPage({ params }: { params: { id: string } }) {
         <p className="text-gray-500">No files uploaded yet.</p>
       ) : (
         <ul className="space-y-2">
-          {files.map((f) => (
+          {files.map(f => (
             <li key={f.name} className="flex justify-between items-center border-b py-2">
               <span className="font-mono truncate">{f.name}</span>
               <a

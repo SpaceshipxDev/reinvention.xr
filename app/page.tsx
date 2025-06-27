@@ -1,4 +1,3 @@
-// app/page.tsx  (server component)
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import JobRow, { JobMeta } from "@/components/JobRow";
@@ -7,9 +6,19 @@ import UploadJob from "@/components/UploadJob";
 export const revalidate = 0;   // always fresh
 
 export default async function Home() {
-  const q   = query(collection(db, "jobs"), orderBy("createdAt", "desc"));
+  const q    = query(collection(db, "jobs"), orderBy("createdAt", "desc"));
   const snap = await getDocs(q);
-  const jobs = snap.docs.map(d => d.data()) as JobMeta[];
+
+  // ► convert Timestamp → millis so it’s “plain JSON”
+  const jobs: JobMeta[] = snap.docs.map(d => {
+    const data = d.data() as any;
+    return {
+      id:         data.id,
+      folder:     data.folder,
+      fileCount:  data.fileCount,
+      createdAtMs: data.createdAt ? data.createdAt.toMillis() : null
+    };
+  });
 
   return (
     <main className="max-w-4xl mx-auto p-6 space-y-8">

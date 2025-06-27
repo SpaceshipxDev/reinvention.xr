@@ -4,8 +4,8 @@ import { useRouter } from "next/navigation";
 export interface JobMeta {
   id: string;
   folder: string;
-  createdAt: any;        // Firestore Timestamp | null
   fileCount: number;
+  createdAtMs: number | null;   // ★ plain millis
 }
 
 export default function JobRow({ job }: { job: JobMeta }) {
@@ -18,7 +18,7 @@ export default function JobRow({ job }: { job: JobMeta }) {
       <td className="py-2 px-4 font-mono">{job.folder}</td>
       <td className="py-2 px-4">{job.fileCount}</td>
       <td className="py-2 px-4 text-sm text-gray-500">
-        {job.createdAt?.toDate?.().toLocaleString?.() ?? "–"}
+        {job.createdAtMs ? new Date(job.createdAtMs).toLocaleString() : "–"}
       </td>
       <td className="py-2 px-4 text-right">
         <button className="text-blue-600 underline">View</button>
