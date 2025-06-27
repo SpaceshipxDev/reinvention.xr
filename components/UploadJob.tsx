@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { ref, uploadBytes } from "firebase/storage";
 import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { storage, db } from "./firebase";
+import { storage, db } from "@/lib/firebase";
 
 export default function UploadJob() {
   const inputRef = useRef<HTMLInputElement>(null);
