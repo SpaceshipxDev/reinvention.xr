@@ -1,103 +1,74 @@
-import Image from "next/image";
+'use client';
+import { useEffect, useState } from "react";
+import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import { db } from "./firebase";
+import JobRow, { JobMeta } from "./JobRow";
+import UploadJob from "./UploadJob";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [jobs, setJobs] = useState<JobMeta[]>([]);
+  const [selected, setSelected] = useState<JobMeta | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+  useEffect(() => {
+    (async () => {
+      const q = query(collection(db, "jobs"), orderBy("createdAt", "desc"));
+      const snap = await getDocs(q);
+      setJobs(snap.docs.map(d => d.data() as JobMeta));
+    })();
+  }, []);
+
+  return (
+    <main className="max-w-4xl mx-auto p-6 space-y-8">
+      <h1 className="text-2xl font-semibold">Jobs dashboard</h1>
+      <UploadJob />
+      <table className="w-full text-left border-collapse">
+        <thead>
+          <tr className="border-b">
+            <th className="py-2 px-4">Folder</th>
+            <th className="py-2 px-4">Files</th>
+            <th className="py-2 px-4">Uploaded</th>
+            <th className="py-2 px-4"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {jobs.map(j => (
+            <JobRow key={j.id} job={j} onView={() => setSelected(j)} />
+          ))}
+        </tbody>
+      </table>
+      {selected && <JobFiles job={selected} onClose={() => setSelected(null)} />}
+    </main>
+  );
+}
+
+// --- Inline modal: JobFiles ---
+import { storage } from "./firebase";
+import { getDownloadURL, listAll, ref } from "firebase/storage";
+function JobFiles({ job, onClose }: { job: JobMeta, onClose: () => void }) {
+  const [files, setFiles] = useState<{ name: string; url: string }[]>([]);
+  useEffect(() => {
+    (async () => {
+      const dirRef = ref(storage, `jobs/${job.id}`);
+      const list = await listAll(dirRef);
+      setFiles(await Promise.all(
+        list.items.map(async i => ({ name: i.name, url: await getDownloadURL(i) }))
+      ));
+    })();
+  }, [job]);
+  return (
+    <div className="fixed inset-0 z-10 bg-black/50 flex items-center justify-center">
+      <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-lg space-y-4 relative">
+        <button className="absolute top-2 right-4 text-lg" onClick={onClose}>×</button>
+        <h2 className="text-xl font-medium mb-2">{job.folder} Files</h2>
+        <ul className="space-y-2">
+          {files.length === 0 && <li className="text-gray-400">No files yet</li>}
+          {files.map(f => (
+            <li key={f.name} className="truncate">
+              <a href={f.url} target="_blank" rel="noopener" className="text-blue-700 underline">{f.name}</a>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
