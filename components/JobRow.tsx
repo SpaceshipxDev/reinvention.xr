@@ -1,13 +1,12 @@
-"use client"
+"use client";
 import { useRouter } from "next/navigation";
 
 export interface JobMeta {
   id: string;
   folder: string;
-  createdAt: any; // Timestamp or null
+  createdAt: any;        // Firestore Timestamp | null
   fileCount: number;
 }
-
 
 export default function JobRow({ job }: { job: JobMeta }) {
   const router = useRouter();

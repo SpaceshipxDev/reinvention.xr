@@ -1,12 +1,13 @@
+// app/page.tsx  (server component)
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import JobRow, { JobMeta } from "@/components/JobRow";
 import UploadJob from "@/components/UploadJob";
 
-export const revalidate = 0; // SSR freshness
+export const revalidate = 0;   // always fresh
 
 export default async function Home() {
-  const q = query(collection(db, "jobs"), orderBy("createdAt", "desc"));
+  const q   = query(collection(db, "jobs"), orderBy("createdAt", "desc"));
   const snap = await getDocs(q);
   const jobs = snap.docs.map(d => d.data()) as JobMeta[];
 
