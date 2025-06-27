@@ -2,8 +2,8 @@
 import { useEffect, useState } from "react";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "./firebase";
-import JobRow, { JobMeta } from "./JobRow";
-import UploadJob from "./UploadJob";
+import JobRow, { JobMeta } from "@/components/JobRow";
+import UploadJob from "@/components/UploadJob";
 
 export default function Home() {
   const [jobs, setJobs] = useState<JobMeta[]>([]);
