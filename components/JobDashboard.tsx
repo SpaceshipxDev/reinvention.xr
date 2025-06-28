@@ -1,4 +1,4 @@
-// src/components/JobDashboard.tsx
+// components/JobDashboard.tsx
 
 "use client";
 

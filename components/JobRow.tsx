@@ -1,4 +1,4 @@
-// src/components/JobRow.tsx
+// components/JobRow.tsx
 
 "use client";
 import { useRouter } from "next/navigation";

@@ -1,6 +1,5 @@
 {
   "/api/jobs/[id]/zip/route": "app/api/jobs/[id]/zip/route.js",
-  "/_not-found/page": "app/_not-found/page.js",
   "/jobs/[id]/page": "app/jobs/[id]/page.js",
   "/page": "app/page.js"
 }

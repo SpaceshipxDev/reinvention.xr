@@ -1,4 +1,4 @@
-// src/app/page.tsx
+// app/page.tsx
 
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";

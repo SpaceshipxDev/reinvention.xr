@@ -1,4 +1,4 @@
-// src/app/api/search/route.ts
+// app/api/search/route.ts
 
 import { GoogleGenAI } from "@google/genai";
 import { collection, getDocs, query } from "firebase/firestore";
