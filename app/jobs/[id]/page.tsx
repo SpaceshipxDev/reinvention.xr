@@ -1,13 +1,10 @@
-// src/app/jobs/[id]/page.tsx
-
 "use client";
 import { useEffect, useState } from "react";
 import { getStorage, ref, listAll, getDownloadURL } from "firebase/storage";
-import { doc, getDoc } from "firebase/firestore"; // ► Import firestore methods
-import { db } from "@/lib/firebase"; // ► Import db instance
-import { JobMeta } from "@/components/JobRow"; // ► Import JobMeta type
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { JobMeta } from "@/components/JobRow";
 
-/** recursively collect every StorageReference under a folder */
 async function collectFiles(r: ReturnType<typeof ref>): Promise<string[]> {
   const res  = await listAll(r);
   const here = res.items.map(i => i.fullPath);
@@ -18,8 +15,9 @@ async function collectFiles(r: ReturnType<typeof ref>): Promise<string[]> {
 export default function JobFilesPage({ params }: { params: { id: string } }) {
   const jobId = params.id;
   const [files, setFiles] = useState<{ name: string; url: string }[]>([]);
-  const [jobMeta, setJobMeta] = useState<JobMeta | null>(null); // ► State for metadata
+  const [jobMeta, setJobMeta] = useState<JobMeta | null>(null);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     if (!jobId) return;
@@ -28,10 +26,8 @@ export default function JobFilesPage({ params }: { params: { id: string } }) {
       setLoading(true);
       const storage   = getStorage();
 
-      // ► Fetch both Firestore doc and Storage files in parallel
       const [docSnap] = await Promise.all([
         getDoc(doc(db, "jobs", jobId)),
-        // The file fetching logic remains the same
         (async () => {
             const rootRef = ref(storage, `jobs/${jobId}`);
             const paths = await collectFiles(rootRef);
@@ -59,15 +55,45 @@ export default function JobFilesPage({ params }: { params: { id: string } }) {
     })();
   }, [jobId]);
 
+  // --- NEW: Download ZIP handler ---
+  const handleDownloadZip = async () => {
+    setDownloading(true);
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/zip`);
+      if (!res.ok) throw new Error("Failed to download ZIP");
+      const blob = await res.blob();
+      // Download using a temporary anchor
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = (jobMeta?.folder || `job-${jobId}`) + ".zip";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert("Error downloading ZIP: " + (err as any).message);
+    }
+    setDownloading(false);
+  };
+
   return (
     <main className="max-w-4xl mx-auto py-8 px-4">
       <h1 className="text-2xl font-bold mb-6">Job Details: {jobMeta?.folder || jobId}</h1>
+
+      {/* Download ZIP Button */}
+      <button
+        onClick={handleDownloadZip}
+        disabled={downloading}
+        className="inline-block mb-4 px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 disabled:opacity-60"
+      >
+        {downloading ? "Preparing ZIP..." : "Download All Files (ZIP)"}
+      </button>
 
       {loading ? (
         <p>Loading job details...</p>
       ) : (
         <>
-          {/* ► Section to display the full metadata */}
           {jobMeta?.meta && (
             <div className="mb-8 p-4 bg-gray-50 rounded-lg border">
               <h3 className="text-lg font-semibold mb-2">Metadata</h3>
@@ -85,6 +111,7 @@ export default function JobFilesPage({ params }: { params: { id: string } }) {
               {files.map(f => (
                 <li key={f.name} className="flex justify-between items-center border-b py-2">
                   <span className="font-mono truncate">{f.name}</span>
+                  {/* You can remove the individual download links if you want */}
                   <a
                     href={f.url}
                     download={f.name}
