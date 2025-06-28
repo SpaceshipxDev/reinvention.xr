@@ -7,7 +7,7 @@ import { JobMeta } from "@/components/JobRow";
 import { NextRequest, NextResponse } from "next/server";
 
 // API key is pulled from GOOGLE_API_KEY in .env.local automatically.
-const ai = new GoogleGenAI({});
+const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY });
 
 function formatJobsForAI(jobs: JobMeta[]): string {
   return jobs
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
 
     // Use new 2025 Gemini API
     const aiResponse = await ai.models.generateContent({
-      model: "gemini-2.5-flash", // Use your preferred model here
+      model: "gemini-2.5-flash-lite-preview-06-17", // Use your preferred model here
       contents: prompt,
     });
 
